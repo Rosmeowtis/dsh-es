@@ -1,0 +1,9 @@
+# dsh-es bundle patch: inserts the Everything/es.exe search plugin into a
+# profile's layer stack. Edit `config` here (or override this row from the
+# profile's own cordis.patch.yml) to point at a non-PATH es.exe.
+- insert:
+    - id: es-search
+      name: 'dsh-es'
+      config:
+        executable: 'es.exe'
+        maxResults: 200

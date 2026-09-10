@@ -1,0 +1,32 @@
+{
+  "name": "dsh-es",
+  "version": "0.1.0",
+  "description": "Whole-disk NTFS file discovery for DeepSeek Harness, backed by Everything's es.exe index, with POSIX-compatible path input and output",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./core": "./lib/core.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0-rc <5",
+    "@deepseek-ai/dsh-subprocess": ">=0.1.0-rc <2",
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc <2"
+  }
+}

@@ -1,0 +1,4 @@
+node_modules/
+.verify/
+.probe/
+test/.es-smoke.txt
