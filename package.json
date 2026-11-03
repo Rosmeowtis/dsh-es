@@ -1,9 +1,10 @@
 {
   "name": "dsh-es",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Whole-disk file search for DeepSeek Harness, backed by Everything's es.exe index: one paginated es_search tool with selectable POSIX/MSYS/WSL path styles",
   "type": "module",
   "main": "lib/index.js",
+  "icon": "./icon.svg",
   "exports": {
     ".": "./lib/index.js",
     "./core": "./lib/core.js",
@@ -14,6 +15,7 @@
     "lib",
     "docs",
     "cordis.patch.yml",
+    "icon.svg",
     "README.md"
   ],
   "scripts": {
