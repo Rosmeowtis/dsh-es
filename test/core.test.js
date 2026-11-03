@@ -24,6 +24,7 @@ import {
 	parseCount,
 	parseResults,
 	renderSearch,
+	splitQuery,
 } from '../lib/core.js';
 
 test('sort vocabulary stays two orthogonal lists instead of a cross product', () => {
@@ -48,10 +49,24 @@ test('findDupe reports the operator and leaves lookalikes alone', () => {
 	assert.equal(findDupe(''), null);
 });
 
+test('splitQuery gives es.exe one argument per token', () => {
+	assert.deepEqual(splitQuery('ext:jpg size:>1mb'), ['ext:jpg', 'size:>1mb']);
+	assert.deepEqual(splitQuery('  a\t b \n c  '), ['a', 'b', 'c']);
+	assert.deepEqual(splitQuery(''), []);
+	assert.deepEqual(splitQuery(undefined), []);
+	// A phrase keeps its quote characters, so Everything still sees a phrase.
+	assert.deepEqual(splitQuery('"Program Files" ext:txt'), ['"Program', 'Files"', 'ext:txt']);
+	// Tokens es.exe would read as switches are quoted, which it documents as the
+	// way to escape them.
+	assert.deepEqual(splitQuery('foo -bar /ad'), ['foo', '"-bar"', '"/ad"']);
+});
+
 test('buildSearchArgv pins the switch order and page window', () => {
+	// One argument per token: a space inside a single argument makes es.exe
+	// re-quote it and Everything then reads the whole thing as a literal phrase.
 	assert.deepEqual(
 		buildSearchArgv('ext:md handbook', { sort: null, type: 'all', offset: 0, limit: 5 }),
-		['-n', '5', '-o', '0', 'ext:md handbook'],
+		['-n', '5', '-o', '0', 'ext:md', 'handbook'],
 	);
 	assert.deepEqual(
 		buildSearchArgv('a', { sort: 'size', order: 'descending', type: 'folder', offset: 100, limit: 100 }),
@@ -221,6 +236,16 @@ test('live: es.exe answers through the count and search argv', (t) => {
 			assert.ok(!path.includes('\\'), `backslash reached the tool boundary: ${path}`);
 			assert.ok(/^([A-Za-z]:\/|\/\/)/.test(path), `not an absolute POSIX path: ${path}`);
 		}
+
+		// Regression: a multi-term query handed over as one argument makes es.exe
+		// re-quote it, so Everything searched for the literal phrase and every
+		// compound query counted 0. One argument per token must count exactly what
+		// es.exe counts for the same terms passed separately.
+		const reference = run(['-get-result-count', 'ext:jpg', 'size:>1mb']);
+		assert.equal(reference.result.status, 0, reference.output);
+		const compound = run(buildCountArgv('ext:jpg size:>1mb', { sort: null, type: 'all' }));
+		assert.equal(compound.result.status, 0, compound.output);
+		assert.equal(parseCount(compound.output), parseCount(reference.output));
 	} finally {
 		rmSync(scratch, { force: true });
 	}
