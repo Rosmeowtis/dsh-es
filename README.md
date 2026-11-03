@@ -36,26 +36,29 @@ dsh --profile web --dump-config
 - id: es-search
   config:
     executable: 'C:/Program Files/Everything/es.exe'
+    pageSize: 50
 ```
 
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `executable` | `es.exe` | `es.exe` 的路径覆盖点：可以只是 `PATH` 上的名字，也可以是绝对路径。 |
+| `pageSize` | `100` | 每次调用返回多少条路径（1–1000）；`page` 与 `count` / 总页数都按它计算。 |
 
 ## 参数
 
 | 参数 | 类型 | 默认值 | 备注 |
 |---|---|---|---|
 | `query` | string，必填 | — | Everything 查询语法。 |
-| `page` | int | `1` | 要返回第几页，每页固定 100 条。 |
+| `page` | int | `1` | 要返回第几页，每页条数由配置项 `pageSize` 决定（默认 100）。 |
 | `style` | `posix` \| `msys` \| `wsl` | `posix` | 返回路径的风格。 |
-| `sort` | string | `null`（不传） | `es.exe -sort` 的字段名，可带 `-ascending` / `-descending` 后缀；省略或传 `null` 就用索引默认顺序。 |
+| `sort` | string | `null`（不传） | `es.exe -sort` 的字段名（`name`、`path`、`size`、`extension`、`date-modified`、`run-count` 等 12 个）；省略或传 `null` 就用索引默认顺序。 |
+| `order` | `ascending` \| `descending` | 不传 | 排序方向，需配合 `sort`；省略则用该字段在 Everything 里的默认方向。 |
 | `type` | `all` \| `folder` \| `file` | `all` | 搜索类型：无开关 / `/ad` / `/a-d`。 |
 
 调用示例：
 
 ```json
-{ "query": "ext:md handbook", "page": 2, "style": "msys", "sort": "date-modified-descending", "type": "file" }
+{ "query": "ext:md handbook", "page": 2, "style": "msys", "sort": "date-modified", "order": "descending", "type": "file" }
 ```
 
 ## 输出
@@ -72,7 +75,7 @@ D:/ros/y/b.md
 
 - `count` 是查询命中总数，`page` 是「当前页 / 总页数」，`results:` 之后每行一个路径。
 - 没有结果时 `results:` 后为空，`page` 显示 `1 / 1`。
-- 分页：先从 `es.exe` 取总数（`-get-result-count`），再取该页（`-n 100 -o (page-1)*100`），因此每页固定 100 条；`page` 超出范围时会被夹到最后一页。
+- 分页：先从 `es.exe` 取总数（`-get-result-count`），再取该页（`-n <pageSize> -o (page-1)*pageSize`），每页条数即配置项 `pageSize`；`page` 超出范围时会被夹到最后一页。
 - 每次调用最多 spawn 两次 `es.exe`：一次取总数，一次取本页（`count` 为 0 时只跑取总数那一次）。
 
 ### 路径风格
@@ -110,6 +113,6 @@ UNC 路径在任何风格下都是 `//server/share/x`。
 - **是索引事实，不是实时扫描。** 刚创建的文件可能还没进索引；Everything 会从 NTFS USN 日志很快补上。
 - **Everything 必须运行。** 否则 `es.exe` 以退出码 8 退出（`Everything IPC window not found`），插件会把这句本地化后回给会话。`es.exe` 缺失、以及其他非 0 退出码同样会带原文回会话（按系统 locale 输出中文或英文）。
 - **不支持 `dupe:` 系列操作符**（`dupe:`、`dupe-from:`、`dupe-count:`、`dupe-min:`、`dupe-max:`）。全量尺寸/哈希比对太慢，`query` 里出现即被直接拒绝并报错。
-- **不传 `sort` 时，分页顺序由索引决定。** 翻页期间索引若发生变动，页与页之间可能出现轻微重排；需要稳定顺序就显式给 `sort`。
+- **不传 `sort` 时，分页顺序由索引决定。** 翻页期间索引若发生变动，页与页之间可能出现轻微重排；需要稳定顺序就显式给 `sort`（可再加 `order`）。
 - **工作区外的命中仍受后续工具沙箱限制。** 搜索能列出它们，不代表 `read` / `edit` 能打开。
 - 只有 Everything 索引了的卷才有结果（NTFS 默认建索引，exFAT/网络共享需自行加入）。

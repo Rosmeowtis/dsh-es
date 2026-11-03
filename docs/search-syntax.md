@@ -274,8 +274,8 @@
 
 - 用 `path:` / `location:` / `parent:` / `ancestor:` 把搜索限定在具体目录，这是提速最有效的一步。
 - 用 `ext:` / `size:` / `dm:`（`date-modified:`）等过滤条件进一步收窄。
-- `sort`、`type`、`page`、`style` 是**工具参数**，不是查询语法：不要写 `sort:size`、`count:` 之类的函数，改用工具参数 `sort`、`type`、`page`、`style`。
-- 工具按 100 条一组分页，只返回指定页码；翻到第 N 页仍要执行完整查询，所以应把条件写精确，而不是靠翻页找目标。
+- `sort`、`order`、`type`、`page`、`style` 是**工具参数**，不是查询语法：不要写 `sort:size`、`count:` 之类的函数，改用工具参数 `sort`、`order`、`type`、`page`、`style`。
+- 工具按固定页大小（配置项 pageSize，默认 100 条）分页，只返回指定页码；翻到第 N 页仍要执行完整查询，所以应把条件写精确，而不是靠翻页找目标。
 - 上游（es.exe / Everything IPC）报错会被翻译成会话语言返回，遇到"找不到文件"类错误先确认 Everything 正在运行。
 
 ## 6. 坑与限制

@@ -1,7 +1,7 @@
 /**
  * Runnable check for dsh-es: pure argv/parse/style/paging logic, plus one live
  * es.exe round trip that skips itself when Everything or es.exe is unavailable.
- * `npm test` (or `node --test test/`).
+ * `npm test` (Node's test runner over the test directory).
  */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
 	PAGE_SIZE,
 	SORT_FIELDS,
-	SORTS,
+	SORT_ORDERS,
 	buildCountArgv,
 	buildSearchArgv,
 	dupeMessage,
@@ -26,15 +26,10 @@ import {
 	renderSearch,
 } from '../lib/core.js';
 
-test('SORTS expands every sort field into its three accepted forms', () => {
+test('sort vocabulary stays two orthogonal lists instead of a cross product', () => {
 	assert.equal(SORT_FIELDS.length, 12);
-	assert.equal(SORTS.length, 36);
-	assert.equal(new Set(SORTS).size, 36);
-	for (const field of SORT_FIELDS) {
-		assert.ok(SORTS.includes(field), field);
-		assert.ok(SORTS.includes(`${field}-ascending`), field);
-		assert.ok(SORTS.includes(`${field}-descending`), field);
-	}
+	assert.equal(new Set(SORT_FIELDS).size, 12);
+	assert.deepEqual(SORT_ORDERS, ['ascending', 'descending']);
 	assert.equal(PAGE_SIZE, 100);
 });
 
@@ -59,17 +54,32 @@ test('buildSearchArgv pins the switch order and page window', () => {
 		['-n', '5', '-o', '0', 'ext:md handbook'],
 	);
 	assert.deepEqual(
-		buildSearchArgv('a', { sort: 'size-descending', type: 'folder', offset: 100, limit: 100 }),
+		buildSearchArgv('a', { sort: 'size', order: 'descending', type: 'folder', offset: 100, limit: 100 }),
 		['-n', '100', '-o', '100', '/ad', '-sort', 'size-descending', 'a'],
+	);
+	// No order: es.exe's own default direction, no suffix added.
+	assert.deepEqual(
+		buildSearchArgv('a', { sort: 'name', type: 'all', offset: 0, limit: 100 }),
+		['-n', '100', '-o', '0', '-sort', 'name', 'a'],
+	);
+	assert.deepEqual(
+		buildSearchArgv('a', { sort: 'name', order: 'ascending', type: 'all', offset: 0, limit: 100 }),
+		['-n', '100', '-o', '0', '-sort', 'name-ascending', 'a'],
 	);
 	assert.deepEqual(
 		buildSearchArgv('a', { sort: undefined, type: 'file', offset: 0, limit: 100 }),
 		['-n', '100', '-o', '0', '/a-d', 'a'],
 	);
+	// An order without a field sorts nothing, so it adds nothing.
+	assert.deepEqual(buildSearchArgv('a', { sort: null, order: 'descending' }), ['-n', '100', '-o', '0', 'a']);
 	assert.deepEqual(buildSearchArgv('a', {}), ['-n', '100', '-o', '0', 'a']);
 });
 
 test('buildCountArgv asks for the total with the same filters and no paging', () => {
+	assert.deepEqual(
+		buildCountArgv('a', { sort: 'size', order: 'descending', type: 'file' }),
+		['/a-d', '-sort', 'size-descending', '-get-result-count', 'a'],
+	);
 	assert.deepEqual(
 		buildCountArgv('a', { sort: 'name', type: 'file' }),
 		['/a-d', '-sort', 'name', '-get-result-count', 'a'],
@@ -127,6 +137,15 @@ test('paginate rounds pages up and clamps the request onto them', () => {
 	assert.equal(paginate(500, -3).page, 1);
 	assert.equal(paginate(500, 2.5).page, 1);
 	assert.equal(paginate(500, undefined).page, 1);
+});
+
+test('paginate honours a configured page size', () => {
+	assert.deepEqual(paginate(101, 1, 50), { page: 1, totalPages: 3, offset: 0 });
+	assert.deepEqual(paginate(101, 2, 50), { page: 2, totalPages: 3, offset: 50 });
+	assert.deepEqual(paginate(101, 9, 50), { page: 3, totalPages: 3, offset: 100 });
+	assert.deepEqual(paginate(7, 1, 1), { page: 1, totalPages: 7, offset: 0 });
+	assert.deepEqual(paginate(7, 7, 1), { page: 7, totalPages: 7, offset: 6 });
+	assert.deepEqual(paginate(0, 1, 250), { page: 1, totalPages: 1, offset: 0 });
 });
 
 test('renderSearch emits the exact three-line header and no trailing newline', () => {

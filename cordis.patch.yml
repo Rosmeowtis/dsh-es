@@ -1,11 +1,14 @@
 # dsh-es bundle patch: inserts the Everything/es.exe search plugin into a
 # profile's layer stack.
 #
-# `executable` is the only setting: where to find es.exe. It accepts a bare name
-# resolved on PATH or an absolute path (e.g. 'C:/Program Files/Everything/es.exe').
-# Everything itself must be running — es.exe is only its IPC client.
+# `executable` is where to find es.exe: a bare name resolved on PATH or an
+# absolute path (e.g. 'C:/Program Files/Everything/es.exe'). Everything itself
+# must be running — es.exe is only its IPC client.
+#
+# `pageSize` is how many paths one `es_search` call returns (1-1000).
 - insert:
     - id: es-search
       name: 'dsh-es'
       config:
         executable: 'es.exe'
+        pageSize: 100
