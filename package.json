@@ -1,6 +1,6 @@
 {
   "name": "dsh-es",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Whole-disk file search for DeepSeek Harness, backed by Everything's es.exe index: one paginated es_search tool with selectable POSIX/MSYS/WSL path styles",
   "type": "module",
   "main": "lib/index.js",
